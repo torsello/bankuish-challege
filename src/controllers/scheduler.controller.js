@@ -11,14 +11,16 @@ nextLifecycleMap.set(LIFECYCLE.ONGOING, LIFECYCLE.COMPLETED)
 nextLifecycleMap.set(LIFECYCLE.COMPLETED, LIFECYCLE.COMPLETED)
 
 const schedule = async (req, res) => {
-  const id = req.body.UserUuid;
+  const id = req.body.userId;
   const coursesList = req.body.courses;
 
   if (!id) {
     res.status(400).send({
-      message: "UserUuid not found",
+      message: "userId not found",
     });
   }
+
+  console.log("Retrieving user with uuid: "+ id+" from db")
 
   let user = await User.findOne({
     where: { uuid: id },
@@ -29,13 +31,13 @@ const schedule = async (req, res) => {
         return user;
       } else {
         res.status(404).send({
-          message: `Cannot find User with UserUuid=${id}.`,
+          message: `Cannot find User with userId=${id}.`,
         });
       }
     })
     .catch((err) => {
       res.status(500).send({
-        message: "Error retrieving User with UserUuid=" + id,
+        message: "Error retrieving User with userId=" + id,
       });
     });
 
@@ -48,6 +50,7 @@ const schedule = async (req, res) => {
     })
   );
 
+  console.log("Proceed to save only the courses that the user does not have")
   for await (course of coursesList) {
     if (!dbCoursesMap.has(course.desiredCourse.toLowerCase())) {
       await userController.addCourse(
@@ -58,7 +61,7 @@ const schedule = async (req, res) => {
     }
   }
 
-  res.status(200).send({ response: "OK" });
+  res.status(201).send({ response: "OK" });
 };
 
 const getSchedule = async (req, res) => {
@@ -70,6 +73,7 @@ const getSchedule = async (req, res) => {
     });
   }
 
+  console.log("Getting courses order by dependencies for user uuid", id)
   let userWithCourses = await User.findOne({
     where: { uuid: id },
     include: [{ model: Course, include: [Course] }],
@@ -77,7 +81,7 @@ const getSchedule = async (req, res) => {
 
   if (!userWithCourses) {
     res.status(404).send({
-      message: `Cannot find User with UserUuid=${id}.`,
+      message: `Cannot find User with userId=${id}.`,
     });
   }
 
@@ -95,6 +99,7 @@ const getSchedule = async (req, res) => {
 
 const getScheduleOrdered = async (req, res) => {
   const id = req.params.uuid;
+  console.log("Getting courses order by dependencies and priorities with lifecycle / is_available for user uuid", id)
 
   if (!id) {
     res.status(400).send({
@@ -109,7 +114,7 @@ const getScheduleOrdered = async (req, res) => {
 
   if (!userWithCourses) {
     res.status(404).send({
-      message: `Cannot find User with UserUuid=${id}.`,
+      message: `Cannot find User with userId=${id}.`,
     });
   }
 
@@ -148,18 +153,18 @@ const getScheduleOrdered = async (req, res) => {
 
 const changeLifecycle = async (req, res) => {
   if (!req.body.user?.uuid || !req.body.course?.uuid) {
-    console.log(req.body);
-
     res.status(400).send({
-      message: "UserUuid not found",
+      message: "userId not found",
     });
   }
 
-  const userUuid = req.body.user.uuid;
+  const userId = req.body.user.uuid;
   const courseUuid = req.body.course.uuid;
 
+  console.log("Changing course lifecycle for course uuid "+courseUuid+" user uuid "+userId)
+
   let user = await User.findOne({
-    where: { uuid: userUuid },
+    where: { uuid: userId },
     include: [{ model: Course, include: [Course] }],
   })
     .then((user) => {
@@ -167,13 +172,13 @@ const changeLifecycle = async (req, res) => {
         return user;
       } else {
         res.status(404).send({
-          message: `Cannot find User with UserUuid=${userUuid}.`,
+          message: `Cannot find User with userId=${userId}.`,
         });
       }
     })
     .catch((err) => {
       res.status(500).send({
-        message: "Error retrieving User with UserUuid=" + userUuid,
+        message: "Error retrieving User with userId=" + userId,
       });
     });
 
@@ -206,4 +211,3 @@ exports.getSchedule = getSchedule;
 exports.schedule = schedule;
 exports.getScheduleOrdered = getScheduleOrdered;
 exports.changeLifecycle = changeLifecycle;
-//exports.complete = complete;

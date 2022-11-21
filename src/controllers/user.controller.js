@@ -1,9 +1,10 @@
-const {db} = require("../models");
+const { db } = require("../models");
 const User = db.user;
 const Op = db.Sequelize.Op;
 const { v4: uuidv4 } = require("uuid");
+const bcrypt = require("bcrypt");
 
-exports.create = (req, res) => {
+exports.create = async (req, res) => {
   if (!req.body.email || !req.body.fullname || !req.body.phone) {
     res.status(400).send({
       message: "Some fields are obligatories!",
@@ -11,17 +12,24 @@ exports.create = (req, res) => {
     return;
   }
 
+  console.log("Creating user with email:", req.body.email)
+
   const user = {
     uuid: uuidv4(),
     email: req.body.email,
     fullname: req.body.fullname,
     phone: req.body.phone,
+    password: req.body.password,
     status: "enabled",
   };
 
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(user.password, salt);
+
   User.create(user)
-    .then((data) => {
-      res.send({ user: { uuid: data.uuid } });
+    .then((user) => {
+      user.password = "**********"
+      res.status(201).send(user);
     })
     .catch((err) => {
       res.status(500).send({
@@ -31,6 +39,7 @@ exports.create = (req, res) => {
 };
 
 exports.addCourse = async (userUuid, courseName, lifecycle) => {
+  console.log("Adding course to user with userUuid:", userUuid)
   return await User.findOne({ where: { uuid: userUuid } })
     .then((user) => {
       if (!user) {
@@ -68,6 +77,8 @@ exports.findAll = (req, res) => {
 
 exports.findOne = (req, res) => {
   const id = req.params.uuid;
+  console.log("Finding user with uuid:", id)
+
 
   User.findOne({ where: { uuid: id } })
     .then((data) => {
@@ -88,6 +99,7 @@ exports.findOne = (req, res) => {
 
 exports.update = (req, res) => {
   const id = req.params.uuid;
+  console.log("updating user with uuid:", id)
 
   User.update(req.body, {
     where: { uuid: id },
@@ -112,6 +124,7 @@ exports.update = (req, res) => {
 
 exports.delete = (req, res) => {
   const id = req.params.uuid;
+  console.log("Deleting user with uuid:", id)
 
   User.destroy({
     where: { uuid: id },

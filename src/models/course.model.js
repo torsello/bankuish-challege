@@ -11,6 +11,9 @@ module.exports = (sequelize, Sequelize) => {
       allowNull: false,
       unique: true,
     },
+    status: {
+      type: Sequelize.STRING
+    }
   });
 
   return Course;

@@ -1,4 +1,4 @@
-const db = require("../models");
+const { db } = require("../models");
 const Course = db.course;
 const { v4: uuidv4 } = require("uuid");
 
@@ -19,7 +19,7 @@ exports.create = (req, res) => {
 
   Course.create(course)
     .then((data) => {
-      res.send(data);
+      res.status(201).send(data);
     })
     .catch((err) => {
       res.status(500).send({
